@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
-import { handleError, handleSuccess } from "../utils/toastMessage";
-import axios from "axios";
-
+import { toast } from "react-toastify";
+import authServices from "../services/authServices";
 const Register = () => {
   const [registerInfo, setRegisterInfo] = useState({
     username: "",
@@ -24,29 +23,29 @@ const Register = () => {
     e.preventDefault();
     const { username, email, password } = registerInfo;
     if (!(username && email && password)) {
-      return handleError("all fields are required");
+      return toast.error("all fields are required");
     }
     try {
-      const url = "http://localhost:5000/register";
-      const res = await axios.post(url, registerInfo); // loginInfo is automatically stringified
+      const res = await authServices.register(username, email, password);
 
       const { success, message, error } = res.data;
 
       if (success) {
-        handleSuccess(message);
+        toast.success(message);
         setTimeout(() => {
           navigate("/login");
         }, 1000);
       } else if (error) {
         const details = error.details[0].message;
-        handleError(details);
+        toast.error(details);
       } else if (!success) {
-        handleError(message);
+        toast.error(message);
       }
 
       console.log(res.data);
     } catch (error) {
-      handleError(error);
+      console.log(error);
+      toast.error(error.response.data.message);
     }
   };
   return (

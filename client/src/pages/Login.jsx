@@ -1,8 +1,7 @@
     import React, { useState } from "react";
     import { Link, useNavigate } from "react-router-dom";
-    import { ToastContainer } from "react-toastify";
-    import { handleError, handleSuccess } from "../utils/toastMessage";
-    import axios from "axios";
+    import { toast } from "react-toastify";
+    import authServices from "../services/authServices";
 
     const Login = () => {
         const [loginInfo, setLoginInfo] = useState({  email: "", password: "" });
@@ -20,28 +19,29 @@
             e.preventDefault();
             const { email, password } = loginInfo;
             if(!(email && password)){
-                return handleError("all fields are required");
+                return toast.error("All fields are required");
             }
             try {
-                const url = "http://localhost:5000/login";
-                const res = await axios.post(url, loginInfo, {withCredentials: true});
+                const res = await authServices.login(email, password);
 
-                const {success, message, name, error} = res.data;
-
+                const {success, message, signToken, username, error} = res.data;
+                console.log(res.data);
                 if(success){
-                    handleSuccess(message);
-                    localStorage.setItem("loggedInUser", name);
+                    toast.success(message);
+                    localStorage.setItem("token", signToken);
+                    localStorage.setItem("loggedInUser", username);
                     setTimeout(() => {
                         navigate("/home");
                     },1000);
-                }else if(error){
-                    const details = error.details[0].message;
-                    handleError(details);
-                } else if(!success){
-                    handleError(message);
+                }else if(!success){
+                    toast.error(message);
                 }
+                else if(error){ 
+                    const details = error.details[0].message;
+                    toast.error(details);
+                } 
             } catch (error) { 
-                handleError(error);
+                toast.error(error.response.data.message);
             }
         }
     return (
@@ -97,8 +97,6 @@
                 </Link>
             </p>
             </form>
-
-            <ToastContainer autoClose={2000} />
         </div>
         </div>
     );

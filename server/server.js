@@ -16,7 +16,8 @@ app.use(cors({
 }));
 
 
-app.use("/", require("./routes/userRoutes"));
+app.use("/auth", require("./routes/authRoutes"));
+app.use("/users", require("./routes/userRoutes"));
 
 dbConnection()
   .then(() => {

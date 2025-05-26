@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { handleSuccess, handleError } from "../utils/toastMessage";
-
+import { toast } from 'react-toastify';
+import authServices from '../services/authServices';
 const Home = () => {
   const [loggedInUser, setLoggedInUser] = useState('');
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const Home = () => {
   // Function to check if the session is still valid
   const checkSession = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/current", {
+      const res = await axios.get("http://localhost:5000/users/me", {
         withCredentials: true,
       });
       if (res.data.success && res.data.user) {
@@ -40,20 +40,21 @@ const Home = () => {
   // Logout handler
   const handleLogout = async () => {
     try {
-      const url = 'http://localhost:5000/logout';
-      const res = await axios.get(url, { withCredentials: true });
+      const res = await authServices.logout();
 
       const { success, message } = res.data;
       if (success) {
-        handleSuccess(message);
+        toast.success(message);
         localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('token');
         setLoggedInUser('');
         navigate('/login');
       } else {
-        handleError(message);
+        toast.error(message);
       }
     } catch (error) {
-      handleError('Failed to logout');
+      console.log(error);
+      toast.error('Failed to logout');
     }
   };
 
