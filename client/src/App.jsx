@@ -1,29 +1,36 @@
-import { React, } from "react";
-import { Navigate, Routes, Route } from "react-router-dom"
-import 'react-toastify/ReactToastify.css'
-import { ToastContainer } from "react-toastify";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Home from "./pages/Home";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Problems from './pages/Problems';
+import CreateProblem from './pages/CreateProblem';
+import Profile from './pages/Profile';
+import Compiler from './pages/Compiler';
+import Register from './pages/Register';
+import Login from './pages/Login';
+import './App.css';
 
 function App() {
   return (
-    <>
-    <ToastContainer 
-      position="top-right"
-      autoClose={2000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-    />
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/home" element={<Home/>} />
-      </Routes>
-    </>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-100">
+          <Navbar />
+          <main className="container mx-auto py-4">
+            <Routes>
+              <Route path='/register' element={<Register />} />
+              <Route path='/login' element={<Login />} />
+              <Route path="/" element={<Problems />} />
+              <Route path="/problems" element={<Problems />} />
+              <Route path="/create-problem" element={<CreateProblem />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/compiler" element={<Compiler />} />
+              {/* Add more routes as needed */}
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

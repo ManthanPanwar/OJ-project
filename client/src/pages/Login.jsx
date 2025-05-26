@@ -2,10 +2,11 @@
     import { Link, useNavigate } from "react-router-dom";
     import { toast } from "react-toastify";
     import authServices from "../services/authServices";
+    import { useAuth } from "../context/AuthContext";
 
     const Login = () => {
         const [loginInfo, setLoginInfo] = useState({  email: "", password: "" });
-
+        const { login } = useAuth();
         const navigate = useNavigate();
         const handleChange = (e) =>{
             const {name, value} = e.target;
@@ -28,10 +29,11 @@
                 console.log(res.data);
                 if(success){
                     toast.success(message);
+                    login({ username, email }, signToken);
                     localStorage.setItem("token", signToken);
                     localStorage.setItem("loggedInUser", username);
                     setTimeout(() => {
-                        navigate("/home");
+                        navigate("/problems");
                     },1000);
                 }else if(!success){
                     toast.error(message);
