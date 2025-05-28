@@ -1,148 +1,131 @@
-import { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import Editor from 'react-simple-code-editor';
-import { highlight, languages } from 'prismjs';
+import ReactMarkdown from 'react-markdown';
+import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-java';
-import 'prismjs/components/prism-cpp';
-import 'prismjs/themes/prism.css'; // or another theme
+import 'prismjs/themes/prism.css';
+import axios from 'axios';
 
-const CompilerPage = () => {
-  const [code, setCode] = useState('');
+function Compiler() {
+  const [code, setCode] = useState(`#include <iostream>
+using namespace std;
+
+int main() {
+    int num1, num2, sum;
+    cin >> num1 >> num2;
+    sum = num1 + num2;
+    cout << "The sum of the two numbers is: " << sum;
+    return 0;
+}`);
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
-  const [language, setLanguage] = useState('cpp');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [aiReview, setAiReview] = useState('');
 
-  const languageOptions = [
-    { value: 'cpp', label: 'C++', syntax: languages.cpp },
-    { value: 'java', label: 'Java', syntax: languages.java },
-    { value: 'js', label: 'JavaScript', syntax: languages.javascript },
-    { value: 'py', label: 'Python', syntax: languages.python },
-  ];
+  const handleRun = async () => {
+    const payload = {
+      language: 'cpp',
+      code,
+      input
+    };
 
-  const getLanguageSyntax = () => {
-    return languageOptions.find(opt => opt.value === language)?.syntax || languages.cpp;
-  };
-
-  const defaultCodes = {
-    cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello World!";\n    return 0;\n}`,
-    java: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello World!");\n    }\n}`,
-    javascript: `console.log("Hello World!");`,
-    python: `print("Hello World!")`
-  };
-
-  const handleRunCode = async () => {
-    setIsLoading(true);
-    setError(null);
-    
     try {
-      const response = await axios.post('http://localhost:5000/compile', {
-        code,
-        language,
-        input
-      });
-      
-      setOutput(response.data.output || 'No output');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to compile code');
-      setOutput(err.response?.data?.stderr || 'Error occurred');
-    } finally {
-      setIsLoading(false);
+      const { data } = await axios.post(import.meta.env.VITE_BACKEND_URL, payload);
+      setOutput(data.output);
+    } catch (error) {
+      setOutput('Error executing code, error: ' + error.message);
     }
   };
 
-  const handleLanguageChange = (e) => {
-    const newLang = e.target.value;
-    setLanguage(newLang);
-    setCode(defaultCodes[newLang]);
+  const handleAiReview = async () => {
+    const payload = {
+      code
+    };
+
+    try {
+      const { data } = await axios.post('http://localhost:8000/ai-review', payload);
+      setAiReview(data.review);
+    } catch (error) {
+      setAiReview('Error in AI review, error: ' + error.message);
+    };
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">Online Compiler</h1>
-      
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Select Language:
-        </label>
-        <select
-          value={language}
-          onChange={handleLanguageChange}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-        >
-          {languageOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <h1 className="text-4xl font-extrabold text-gray-800 mb-6 text-center">AlgoU Online Code Compiler</h1>
 
-      <div className="mb-4 border rounded-md overflow-hidden">
-        <label className="block text-sm font-medium text-gray-700 mb-1 px-3 pt-2">
-          Code Editor:
-        </label>
-        <div className="editor-container border-t border-gray-200">
-          <Editor
-            value={code}
-            onValueChange={code => setCode(code)}
-            highlight={code => highlight(code, getLanguageSyntax(), language)}
-            padding={10}
-            style={{
-              fontFamily: '"Fira code", "Fira Mono", monospace',
-              fontSize: 14,
-              backgroundColor: '#f5f5f5',
-              minHeight: '300px'
-            }}
-            className="editor"
-            textareaClassName="code-textarea"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="border rounded-md overflow-hidden">
-          <label className="block text-sm font-medium text-gray-700 mb-1 px-3 pt-2">
-            Custom Input:
-          </label>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="block w-full h-40 px-3 py-2 border-t border-gray-200 focus:outline-none font-mono text-sm"
-            placeholder="Enter input here..."
-          />
-        </div>
-        <div className="border rounded-md overflow-hidden">
-          <label className="block text-sm font-medium text-gray-700 mb-1 px-3 pt-2">
-            Output:
-          </label>
-          <pre className="block w-full h-40 px-3 py-2 bg-gray-50 overflow-auto border-t border-gray-200 font-mono text-sm whitespace-pre-wrap">
-            {output}
-          </pre>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <button
-          onClick={handleRunCode}
-          disabled={isLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
-        >
-          {isLoading ? 'Running...' : 'Run Code'}
-        </button>
-        
-        {error && (
-          <div className="text-red-500 text-sm">
-            {error}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Code Editor Section */}
+        <div className="bg-white shadow-lg rounded-lg p-4 h-full flex flex-col">
+          <h2 className="text-xl font-semibold text-gray-700 mb-3">Code Editor</h2>
+          <div className="bg-gray-100 rounded-lg overflow-y-auto flex-grow" style={{ height: '500px' }}>
+            <Editor
+              value={code}
+              onValueChange={code => setCode(code)}
+              highlight={code => highlight(code, languages.js)}
+              padding={15}
+              style={{
+                fontFamily: '"Fira code", "Fira Mono", monospace',
+                fontSize: 14,
+                minHeight: '500px'
+              }}
+            />
           </div>
-        )}
+        </div>
+
+        {/* Input, Output, AI Review */}
+        <div className="flex flex-col gap-4">
+          {/* Input Box */}
+          <div className="bg-white shadow-lg rounded-lg p-4">
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">Input</h2>
+            <textarea
+              rows="4"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter input values..."
+              className="w-full p-3 text-sm border border-gray-300 rounded-md resize-none"
+            />
+          </div>
+
+          {/* Output Box */}
+          <div className="bg-white shadow-lg rounded-lg p-4 overflow-y-auto" style={{ height: '150px' }}>
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">Output</h2>
+            <div className="text-sm font-mono whitespace-pre-wrap text-gray-800">{output}</div>
+          </div>
+
+          {/* AI Review Box */}
+          <div className="bg-white shadow-lg rounded-lg p-4">
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">AI Review</h2>
+            <div className="prose prose-sm text-gray-800 overflow-y-auto" style={{ height: '150px' }}>
+              {
+                aiReview === '' ?
+                  <div>🤖</div> :
+                  <ReactMarkdown>
+                    {aiReview}
+                  </ReactMarkdown>
+              }
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-4 mt-2">
+            <button
+              onClick={handleRun}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition"
+            >
+              Run
+            </button>
+            <button
+              onClick={handleAiReview}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition"
+            >
+              AI Review
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
+}
 
-export default CompilerPage;
+export default Compiler;

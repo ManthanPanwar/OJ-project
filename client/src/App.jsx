@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import Compiler from './pages/Compiler';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import Problem from './pages/Problem';
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
               <Route path='/login' element={<Login />} />
               <Route path="/" element={<Problems />} />
               <Route path="/problems" element={<Problems />} />
+              <Route path="/problems/:id" element={<Problem />} />
               <Route path="/create-problem" element={<CreateProblem />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/compiler" element={<Compiler />} />

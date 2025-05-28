@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Problems = () => {
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  const handleClick = (id) => {
+    return () => {
+      navigate(`/problems/${id}`);
+    };
+  };
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -92,7 +100,10 @@ const Problems = () => {
               </div>
             </div>
             
-            <button className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm">
+            <button 
+              onClick={handleClick(problem._id)}
+              className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm"
+            >
               Solve Problem
             </button>
           </div>
