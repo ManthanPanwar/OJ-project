@@ -14,6 +14,11 @@ const submissionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    submittedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

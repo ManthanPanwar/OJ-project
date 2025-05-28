@@ -13,7 +13,7 @@ const Problem = () => {
   const [output, setOutput] = useState('');
   const [customInput, setCustomInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [language, setLanguage] = useState('javascript');
+  const [language, setLanguage] = useState('cpp');
   const [activeTab, setActiveTab] = useState('description');
 
   // Default code templates for each language
@@ -21,7 +21,7 @@ const Problem = () => {
     javascript: `// Write your solution here\nfunction solution(input) {\n  // Your code goes here\n  return input;\n}`,
     python: `# Write your solution here\ndef solution(input):\n    # Your code goes here\n    return input`,
     java: `// Write your solution here\npublic class Solution {\n    public static Object solution(Object input) {\n        // Your code goes here\n        return input;\n    }\n}`,
-    cpp: `// Write your solution here\n#include <iostream>\n#include <vector>\n\nusing namespace std;\n\nObject solution(Object input) {\n    // Your code goes here\n    return input;\n}`
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main(){\n    // Your code goes here\n    return 0;\n}`
   };
 
   useEffect(() => {
@@ -66,7 +66,7 @@ const Problem = () => {
         language,
         input: customInput
       });
-
+      console.log(response.data)
       setOutput(response.data.output || response.data.error);
     } catch (err) {
       setOutput(`Error: ${err.response?.data?.error || err.message}`);
