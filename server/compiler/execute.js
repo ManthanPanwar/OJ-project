@@ -13,25 +13,11 @@ if (!fs.existsSync(outputPath)) {
 const executeCode = async ({ filePath, inputPath }) => {
   const jobId = path.basename(filePath).split(".")[0];
   // const language = path.extname(filePath).slice(1);
-  const outPath = path.join(outputPath, `${jobId}.out`);
-    // console.log("filePath********", filePath);
-    // return new Promise((resolve, reject) => {
-    //   const cmdd = `g++ ${filePath} -o ${outPath} && cd ${outputPath} && .\\${jobId}.out < ${inputPath}`
-    //   exec(cmdd, {shell: "cmd.exe"}, (error, stdout, stderr) => {
-    //     console.log("error", error);
-    //     if (error) {
-    //       reject({ error: error.message, stderr });
-    //     }
-    //     if (stderr) {
-    //       reject(stderr);
-    //     }
-    //     resolve(stdout);
-    //   });
-    // });
+  const outPath = path.join(outputPath, `${jobId}.exe`);
 
     return new Promise((resolve, reject) => {
     exec(
-      `g++ ${filePath} -o ${outPath} && cd ${outputPath} && ./${jobId}.out < ${inputPath}`,
+      `g++ ${filePath} -o ${outPath} && cd ${outputPath} && .\\${jobId}.exe < ${inputPath}`,
       (error, stdout, stderr) => {
         if (error) {
           reject({ error, stderr });

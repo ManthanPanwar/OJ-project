@@ -6,6 +6,7 @@ import MonacoEditor from '@monaco-editor/react';
 const Problem = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,22 +17,23 @@ const Problem = () => {
   const [language, setLanguage] = useState('cpp');
   const [activeTab, setActiveTab] = useState('description');
 
-  // Default code templates for each language
+  const [testResults, setTestResults] = useState([]);
+  const [verdict, setVerdict] = useState(null);
+
   const languageTemplates = {
-    javascript: `// Write your solution here\nfunction solution(input) {\n  // Your code goes here\n  return input;\n}`,
-    python: `# Write your solution here\ndef solution(input):\n    # Your code goes here\n    return input`,
-    java: `// Write your solution here\npublic class Solution {\n    public static Object solution(Object input) {\n        // Your code goes here\n        return input;\n    }\n}`,
-    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main(){\n    // Your code goes here\n    return 0;\n}`
+    javascript: `function main(input) {\n  // Your code here\n  return input;\n}`,
+    python: `def main(input):\n    # Your code here\n    return input`,
+    java: `public class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}`,
+    cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}`
   };
 
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/problems/${id}`);
-        setProblem(response.data.problem);
+        const res = await axios.get(`http://localhost:5000/problems/${id}`);
+        setProblem(res.data.problem);
         setCode(languageTemplates[language]);
       } catch (err) {
-        console.error("Fetch error:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -42,14 +44,8 @@ const Problem = () => {
   }, [id]);
 
   useEffect(() => {
-    if (problem) {
-      setCode(languageTemplates[language]);
-    }
+    if (problem) setCode(languageTemplates[language]);
   }, [language]);
-
-  const handleLanguageChange = (e) => {
-    setLanguage(e.target.value);
-  };
 
   const handleRunCode = async () => {
     if (!code.trim()) {
@@ -64,10 +60,47 @@ const Problem = () => {
       const response = await axios.post(`http://localhost:5000/problems/${id}/run`, {
         code,
         language,
-        input: customInput
+        input: customInput,
       });
-      console.log(response.data)
       setOutput(response.data.output || response.data.error);
+    } catch (err) {
+      setOutput(`Error: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleSubmitCode = async () => {
+    if (!code.trim()) {
+      setOutput('Please write some code before submitting');
+      return;
+    }
+
+    setIsRunning(true);
+    setOutput('Checking your solution...');
+    setTestResults([]);
+    setVerdict(null);
+
+    try {
+      const response = await axios.post(`http://localhost:5000/problems/${id}/submit`, {
+        code,
+        language,
+      });
+
+      const results = response.data.results || [];
+      const failedIndex = results.findIndex(r => !r.passed);
+
+      if (failedIndex >= 0) {
+        setVerdict('Wrong Answer');
+        // Show all test cases up to and including the first failed one
+        setTestResults(results.slice(0, failedIndex + 1));
+        setOutput(`Wrong Answer on Test Case ${failedIndex + 1}`);
+      } else {
+        setVerdict('Accepted');
+        setTestResults(results);
+        setOutput('All test cases passed!');
+      }
+
     } catch (err) {
       setOutput(`Error: ${err.response?.data?.error || err.message}`);
     } finally {
@@ -85,7 +118,7 @@ const Problem = () => {
   };
 
   const getEditorLanguage = () => {
-    switch(language) {
+    switch (language) {
       case 'python': return 'python';
       case 'java': return 'java';
       case 'cpp': return 'cpp';
@@ -94,224 +127,160 @@ const Problem = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <div className="text-center py-20 text-lg">Loading problem...</div>;
   }
 
   if (error) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen text-red-500 space-y-4">
-        <div className="text-2xl font-bold">Error Loading Problem</div>
-        <div>{error}</div>
-        <button 
-          onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-        >
-          Go Back
-        </button>
-      </div>
-    );
-  }
-
-  if (!problem) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-xl">Problem not found</div>
+      <div className="text-center py-20 text-red-600">
+        Error: {error}
+        <br />
+        <button onClick={() => navigate(-1)} className="text-blue-500 underline mt-4">Go Back</button>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header with back button */}
-        <div className="flex items-center mb-6">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center text-blue-600 hover:text-blue-800 transition mr-4"
-          >
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">{problem.title}</h1>
-          <div className={`ml-4 px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(problem.difficulty)}`}>
-            {problem.difficulty}
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <button onClick={() => navigate(-1)} className="text-blue-600 underline mb-4 block">← Back</button>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">{problem.title}</h1>
+        <div className={`inline-block px-3 py-1 rounded-full text-sm ${getDifficultyColor(problem.difficulty)}`}>
+          {problem.difficulty}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left - Problem Info */}
+        <div className="bg-white p-6 rounded shadow">
+          <div className="mb-4">
+            <h2 className="font-bold text-lg mb-2">Description</h2>
+            <p>{problem.description}</p>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="font-bold text-lg mb-2">Input Format</h2>
+            <pre className="bg-gray-100 p-2 rounded">{problem.input_format}</pre>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="font-bold text-lg mb-2">Output Format</h2>
+            <pre className="bg-gray-100 p-2 rounded">{problem.output_format}</pre>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="font-bold text-lg mb-2">Constraints</h2>
+            <ul className="list-disc pl-5">
+              {problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
+            </ul>
+          </div>
+
+          {/* Added Example Test Cases section */}
+          <div className="mb-4">
+            <h2 className="font-bold text-lg mb-2">Example Test Cases</h2>
+            {problem.example_cases.map((testCase, index) => (
+              <div key={index} className="mb-4">
+                <h3 className="font-medium mb-1">Example {index + 1}</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Input:</p>
+                    <pre className="bg-gray-100 p-2 rounded">{testCase.input}</pre>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Output:</p>
+                    <pre className="bg-gray-100 p-2 rounded">{testCase.output}</pre>
+                  </div>
+                </div>
+                {testCase.explanation && (
+                  <div className="mt-1">
+                    <p className="text-sm font-semibold">Explanation:</p>
+                    <p className="text-sm">{testCase.explanation}</p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Problem Content */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="border-b border-gray-200">
-              <div className="flex">
-                <button
-                  className={`px-4 py-3 font-medium ${activeTab === 'description' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
-                  onClick={() => setActiveTab('description')}
-                >
-                  Description
-                </button>
-                <button
-                  className={`px-4 py-3 font-medium ${activeTab === 'solutions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
-                  onClick={() => setActiveTab('solutions')}
-                >
-                  Solutions
-                </button>
-              </div>
+        
+
+        {/* Right - Editor */}
+        <div className="space-y-6">
+          <div className="bg-white p-4 rounded shadow">
+            <div className="flex justify-between mb-2">
+              <h2 className="text-lg font-semibold">Editor</h2>
+              <select value={language} onChange={e => setLanguage(e.target.value)} className="border rounded px-2 py-1">
+                <option value="cpp">C++</option>
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+              </select>
             </div>
-            
-            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-              {activeTab === 'description' && (
-                <div className="prose max-w-none">
-                  <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-3 text-gray-800">Problem Statement</h2>
-                    <p className="text-gray-700">{problem.description}</p>
-                  </div>
+            <MonacoEditor
+              height="300px"
+              language={getEditorLanguage()}
+              theme="vs-dark"
+              value={code}
+              onChange={(val) => setCode(val)}
+              options={{ fontSize: 14, minimap: { enabled: false } }}
+            />
+          </div>
 
-                  <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-3 text-gray-800">Input Format</h2>
-                    <pre className="bg-gray-100 p-4 rounded-md text-gray-800 overflow-x-auto">{problem.input_format}</pre>
-                  </div>
+          <div className="bg-white p-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-2">Custom Input</h2>
+            <textarea
+              className="w-full border rounded p-2 font-mono text-sm"
+              rows="5"
+              placeholder="Enter custom input here..."
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+            />
+          </div>
 
-                  <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-3 text-gray-800">Output Format</h2>
-                    <pre className="bg-gray-100 p-4 rounded-md text-gray-800 overflow-x-auto">{problem.output_format}</pre>
-                  </div>
+          <div className="flex gap-4">
+            <button onClick={handleRunCode} disabled={isRunning} className="bg-blue-600 text-white px-4 py-2 rounded">
+              Run Code
+            </button>
+            <button onClick={handleSubmitCode} disabled={isRunning} className="bg-green-600 text-white px-4 py-2 rounded">
+              Submit
+            </button>
+          </div>
 
-                  <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-3 text-gray-800">Constraints</h2>
-                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                      {problem.constraints.map((constraint, index) => (
-                        <li key={index}>{constraint}</li>
-                      ))}
-                    </ul>
-                  </div>
+          <div className="bg-gray-900 text-green-400 p-4 rounded shadow font-mono h-40 overflow-auto">
+            <pre>{output || 'Output will be shown here...'}</pre>
+          </div>
 
-                  {problem.example_cases && problem.example_cases.length > 0 && (
-                    <div className="mb-6">
-                      <h2 className="text-xl font-semibold mb-3 text-gray-800">Examples</h2>
-                      {problem.example_cases.map((example, index) => (
-                        <div key={index} className="mb-6 bg-gray-50 p-4 rounded-md">
-                          <h3 className="font-medium text-gray-700 mb-2">Example {index + 1}:</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="font-medium text-gray-600 mb-1">Input:</p>
-                              <pre className="bg-gray-100 p-3 rounded text-gray-800 overflow-x-auto">{JSON.stringify(example.input, null, 2)}</pre>
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-600 mb-1">Output:</p>
-                              <pre className="bg-gray-100 p-3 rounded text-gray-800 overflow-x-auto">{JSON.stringify(example.output, null, 2)}</pre>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+          {verdict && (
+            <div className={`text-xl font-bold ${verdict === 'Accepted' ? 'text-green-600' : 'text-red-600'}`}>
+              {verdict}
+            </div>
+          )}
+
+          {testResults.length > 0 && (
+            <div className="bg-white p-4 rounded shadow">
+              <h2 className="text-lg font-semibold mb-4">Test Cases</h2>
+              {testResults.map((test, index) => (
+                <div key={index} className={`mb-4 border-t pt-2 ${!test.passed ? 'bg-red-50' : ''}`}>
+                  <h3 className="font-medium mb-2">Test Case {index + 1}</h3>
+                  <p><strong>Input:</strong> <pre className="bg-gray-100 p-2 rounded">{test.input}</pre></p>
+                  <p><strong>Expected Output:</strong> <pre className="bg-gray-100 p-2 rounded">{test.expected}</pre></p>
+                  <p><strong>Your Output:</strong> <pre className="bg-gray-100 p-2 rounded">{test.output}</pre></p>
+                  <p className={`font-bold ${test.passed ? 'text-green-600' : 'text-red-600'}`}>
+                    {test.passed ? '✓ Passed' : '✗ Failed'}
+                  </p>
+                  {!test.passed && (
+                    <p className="text-red-600 font-medium">
+                      This was the first failed test case. Fix your code to proceed.
+                    </p>
                   )}
                 </div>
-              )}
-              
-              {activeTab === 'solutions' && (
-                <div className="text-center py-10 text-gray-500">
-                  Solutions will be available after you solve the problem
-                </div>
-              )}
+              ))}
             </div>
-          </div>
-
-          {/* Right Column - Editor and Output */}
-          <div className="space-y-6">
-            {/* Language Selector */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-800">Code Editor</h2>
-                <select 
-                  value={language}
-                  onChange={handleLanguageChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Code Editor */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <MonacoEditor
-                height="400px"
-                language={getEditorLanguage()}
-                theme="vs-dark"
-                value={code}
-                onChange={(value) => setCode(value)}
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 14,
-                  wordWrap: 'on',
-                  automaticLayout: true,
-                }}
-              />
-            </div>
-
-            {/* Custom Input */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-800">Custom Input</h2>
-              </div>
-              <textarea
-                value={customInput}
-                onChange={(e) => setCustomInput(e.target.value)}
-                className="w-full p-4 h-32 font-mono text-sm border-none focus:ring-0 resize-none"
-                placeholder="Enter custom input here (JSON format for objects/arrays)"
-              />
-            </div>
-
-            {/* Buttons */}
-            <div className="flex space-x-4">
-              <button
-                onClick={handleRunCode}
-                disabled={isRunning}
-                className={`flex-1 px-6 py-3 rounded-md font-medium ${
-                  isRunning 
-                    ? 'bg-blue-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } text-white transition-colors`}
-              >
-                {isRunning ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Running...
-                  </span>
-                ) : 'Run Code'}
-              </button>
-              <button className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors">
-                Submit
-              </button>
-            </div>
-
-            {/* Output */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-800">Output</h2>
-              </div>
-              <div className="p-4 bg-gray-900 text-green-400 font-mono text-sm h-48 overflow-auto">
-                <pre className="whitespace-pre-wrap">{output || 'Run your code to see output here...'}</pre>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default Problem; 
+export default Problem;
