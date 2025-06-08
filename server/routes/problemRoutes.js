@@ -9,7 +9,10 @@ const {
   deleteProblemById,
   updateProblemById,
 } = require("../controllers/problemController");
+
 const { runCode, submitCode } = require("../controllers/runController");
+
+const { aiReview } = require("../controllers/aiController");
 
 router.post("/createproblem", createProblem);
 router.get("/",  getAllProblems);
@@ -18,5 +21,6 @@ router.delete("/:id", deleteProblemById);
 router.put("/:id",  updateProblemById);
 router.post("/:id/run",  runCode);
 router.post('/:id/submit',  submitCode);
+router.post("/:id/aireview", aiReview);
 
 module.exports = router;

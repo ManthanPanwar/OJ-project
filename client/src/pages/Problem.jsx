@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import MonacoEditor from '@monaco-editor/react';
+import ReactMarkdown from 'react-markdown';
 
 const Problem = () => {
   const { id } = useParams();
@@ -11,14 +12,14 @@ const Problem = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [code, setCode] = useState('');
-  const [output, setOutput] = useState('');
   const [customInput, setCustomInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [language, setLanguage] = useState('cpp');
-  const [activeTab, setActiveTab] = useState('description');
 
   const [testResults, setTestResults] = useState([]);
   const [verdict, setVerdict] = useState(null);
+  const [aiReview, setAiReview] = useState('');
+  const [hasSubmitted, setHasSubmitted] = useState(false); // <-- New state
 
   const languageTemplates = {
     javascript: `function main(input) {\n  // Your code here\n  return input;\n}`,
@@ -49,12 +50,11 @@ const Problem = () => {
 
   const handleRunCode = async () => {
     if (!code.trim()) {
-      setOutput('Please write some code before running');
+      console.log("No code Provided");
       return;
     }
 
     setIsRunning(true);
-    setOutput('Running your code...');
 
     try {
       const response = await axios.post(`http://localhost:5000/problems/${id}/run`, {
@@ -62,9 +62,9 @@ const Problem = () => {
         language,
         input: customInput,
       });
-      setOutput(response.data.output || response.data.error);
+      console.log(response.data.output || response.data.error);
     } catch (err) {
-      setOutput(`Error: ${err.response?.data?.error || err.message}`);
+      console.log("Error: ", err);
     } finally {
       setIsRunning(false);
     }
@@ -72,12 +72,11 @@ const Problem = () => {
 
   const handleSubmitCode = async () => {
     if (!code.trim()) {
-      setOutput('Please write some code before submitting');
+      console.log("No code Provided");
       return;
     }
 
     setIsRunning(true);
-    setOutput('Checking your solution...');
     setTestResults([]);
     setVerdict(null);
 
@@ -92,19 +91,26 @@ const Problem = () => {
 
       if (failedIndex >= 0) {
         setVerdict('Wrong Answer');
-        // Show all test cases up to and including the first failed one
         setTestResults(results.slice(0, failedIndex + 1));
-        setOutput(`Wrong Answer on Test Case ${failedIndex + 1}`);
       } else {
         setVerdict('Accepted');
         setTestResults(results);
-        setOutput('All test cases passed!');
       }
-
+      setHasSubmitted(true); // <-- Add this line
     } catch (err) {
-      setOutput(`Error: ${err.response?.data?.error || err.message}`);
+      setHasSubmitted(true); // <-- Even on error, allow AI review
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const handleAiReview = async () => {
+    try {
+      const response = await axios.post(`http://localhost:5000/problems/${id}/aireview`, { code });
+      console.log(response.data);
+      setAiReview(response.data.data.review);
+    } catch (error) {
+      setAiReview('Error in AI review, error: ' + error.message);
     }
   };
 
@@ -155,7 +161,7 @@ const Problem = () => {
         <div className="bg-white p-6 rounded shadow">
           <div className="mb-4">
             <h2 className="font-bold text-lg mb-2">Description</h2>
-            <p>{problem.description}</p>
+            <ReactMarkdown>{problem.description}</ReactMarkdown>
           </div>
 
           <div className="mb-4">
@@ -202,8 +208,6 @@ const Problem = () => {
           </div>
         </div>
 
-        
-
         {/* Right - Editor */}
         <div className="space-y-6">
           <div className="bg-white p-4 rounded shadow">
@@ -246,8 +250,33 @@ const Problem = () => {
             </button>
           </div>
 
-          <div className="bg-gray-900 text-green-400 p-4 rounded shadow font-mono h-40 overflow-auto">
+          {/* <div className="bg-gray-900 text-green-400 p-4 rounded shadow font-mono h-40 overflow-auto">
             <pre>{output || 'Output will be shown here...'}</pre>
+          </div> */}
+
+          {/* AI Review Box */}
+          <div className="bg-white shadow-lg rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-semibold text-gray-700">AI Review</h2>
+              <button
+                onClick={handleAiReview}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded transition"
+                disabled={isRunning || !hasSubmitted} // <-- Disable unless submitted
+              >
+                AI Review
+              </button>
+            </div>
+            <div className="prose prose-sm text-gray-800 overflow-y-auto" style={{ height: '300px' }}>
+              {aiReview === '' ? (
+                <div>🤖</div>
+              ) : (
+                <ReactMarkdown>{aiReview}</ReactMarkdown>
+              )}
+            </div>
+            {/* Tooltip or message if AI Review is locked */}
+            {!hasSubmitted && (
+              <div className="text-xs text-gray-500 mt-1">Submit your code to unlock AI Review.</div>
+            )}
           </div>
 
           {verdict && (

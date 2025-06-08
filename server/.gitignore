@@ -3,3 +3,7 @@
 /compiler/codes
 /compiler/inputs
 /compiler/outputs
+.dockerignore
+
+package-lock.json
+
