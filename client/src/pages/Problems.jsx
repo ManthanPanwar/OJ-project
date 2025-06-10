@@ -17,10 +17,11 @@ const Problems = () => {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/problems/');
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/problems/`);
 
         let problemsData = [];
         problemsData = response.data.problems;
+        console.log("problemsData", problemsData);
 
         if (problemsData.length === 0) {
           console.warn('Received empty problems array');

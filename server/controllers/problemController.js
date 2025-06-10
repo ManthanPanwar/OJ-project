@@ -51,19 +51,27 @@ const createProblem = async (req, res) => {
 
 const getAllProblems = async (req, res) => {
     try {
-        const problems = await Problem.find({});
+        // Only select _id, title, and difficulty fields
+        const problems = await Problem.find({})
+  .select('_id title difficulty')
+  .lean()
+//   .then(problems => problems.map(p => ({
+//     _id: p._id,
+//     title: p.title,
+//     difficulty: p.difficulty
+//   })));
         if (!problems || problems.length === 0)
+            return res
+                .status(404)
+                .json({ message: "No problems found", success: false });
+        console.log("Fetched problems:", problems);
         return res
-            .status(404)
-            .json({ message: "No problems found", success: false });
-        return res
-        .status(200)
-        .json({ message: "Problems fetched successfully", success: true, problems });
+            .status(200)
+            .json({ message: "Problems fetched successfully", success: true, problems });
     } catch (err) {
-        // console.log(err);
         return res
-        .status(500)
-        .json({ message: "Internal server error", success: false, err });
+            .status(500)
+            .json({ message: "Internal server error", success: false, err });
     }
 };
 

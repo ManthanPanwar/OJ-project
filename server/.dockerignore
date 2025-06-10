@@ -3,4 +3,4 @@ package-lock.json
 compiler/codes
 compiler/outputs
 compiler/inputs
-.gitignore
+.env

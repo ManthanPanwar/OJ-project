@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import MonacoEditor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'react-toastify';
 
 const Problem = () => {
   const { id } = useParams();
@@ -12,7 +13,7 @@ const Problem = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [code, setCode] = useState('');
-  const [customInput, setCustomInput] = useState('');
+  // const [customInput, setCustomInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [language, setLanguage] = useState('cpp');
 
@@ -31,7 +32,7 @@ const Problem = () => {
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/problems/${id}`);
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}`);
         setProblem(res.data.problem);
         setCode(languageTemplates[language]);
       } catch (err) {
@@ -55,14 +56,23 @@ const Problem = () => {
     }
 
     setIsRunning(true);
+    setTestResults([]);
+    setVerdict(null);
 
     try {
-      const response = await axios.post(`http://localhost:5000/problems/${id}/run`, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/run`, {
         code,
         language,
-        input: customInput,
       });
-      console.log(response.data.output || response.data.error);
+      
+      console.log(response.data);
+      const {passedAll, results} = response.data;
+      if(passedAll) {
+        setVerdict('Accepted');
+        setTestResults(results);
+      } else{
+        setVerdict('Wrong Answer');
+      }
     } catch (err) {
       console.log("Error: ", err);
     } finally {
@@ -81,7 +91,7 @@ const Problem = () => {
     setVerdict(null);
 
     try {
-      const response = await axios.post(`http://localhost:5000/problems/${id}/submit`, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/submit`, {
         code,
         language,
       });
@@ -98,6 +108,7 @@ const Problem = () => {
       }
       setHasSubmitted(true); // <-- Add this line
     } catch (err) {
+      console.log(err)
       setHasSubmitted(true); // <-- Even on error, allow AI review
     } finally {
       setIsRunning(false);
@@ -106,8 +117,8 @@ const Problem = () => {
 
   const handleAiReview = async () => {
     try {
-      const response = await axios.post(`http://localhost:5000/problems/${id}/aireview`, { code });
-      console.log(response.data);
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/aireview`, { code });
+      toast.success("AI review is on the way! Please wait a moment.");
       setAiReview(response.data.data.review);
     } catch (error) {
       setAiReview('Error in AI review, error: ' + error.message);
@@ -147,43 +158,39 @@ const Problem = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <button onClick={() => navigate(-1)} className="text-blue-600 underline mb-4 block">← Back</button>
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">{problem.title}</h1>
-        <div className={`inline-block px-3 py-1 rounded-full text-sm ${getDifficultyColor(problem.difficulty)}`}>
-          {problem.difficulty}
-        </div>
-      </div>
-
+    <div className="mx-3">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left - Problem Info */}
         <div className="bg-white p-6 rounded shadow">
+          <h1 className="inline-block text-3xl font-bold text-gray-800 mb-4">{problem.title}</h1>
+          <div className={`inline-block ml-2 px-3 py-1 rounded-full text-sm ${getDifficultyColor(problem.difficulty)}`}>
+            {problem.difficulty}
+          </div>
           <div className="mb-4">
-            <h2 className="font-bold text-lg mb-2">Description</h2>
+            <h2 className="font-bold text-lg mb-1">Description</h2>
             <ReactMarkdown>{problem.description}</ReactMarkdown>
           </div>
 
           <div className="mb-4">
-            <h2 className="font-bold text-lg mb-2">Input Format</h2>
+            <h2 className="font-bold text-lg mb-1">Input Format</h2>
             <pre className="bg-gray-100 p-2 rounded">{problem.input_format}</pre>
           </div>
 
           <div className="mb-4">
-            <h2 className="font-bold text-lg mb-2">Output Format</h2>
+            <h2 className="font-bold text-lg mb-1">Output Format</h2>
             <pre className="bg-gray-100 p-2 rounded">{problem.output_format}</pre>
           </div>
 
           <div className="mb-4">
-            <h2 className="font-bold text-lg mb-2">Constraints</h2>
+            <h2 className="font-bold text-lg mb-1">Constraints</h2>
             <ul className="list-disc pl-5">
               {problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
             </ul>
           </div>
 
-          {/* Added Example Test Cases section */}
+          {/* Example Test Cases section */}
           <div className="mb-4">
-            <h2 className="font-bold text-lg mb-2">Example Test Cases</h2>
+            <h2 className="font-bold text-lg mb-1">Example Test Cases</h2>
             {problem.example_cases.map((testCase, index) => (
               <div key={index} className="mb-4">
                 <h3 className="font-medium mb-1">Example {index + 1}</h3>
@@ -206,6 +213,31 @@ const Problem = () => {
               </div>
             ))}
           </div>
+
+          {/* AI Review Box moved here */}
+          <div className="bg-slate-200 shadow-lg rounded-lg p-4 mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg px-50 py-2 rounded-2xl bg-slate-500 font-semibold text-black">AI Review</h2>
+              <button
+                onClick={handleAiReview}
+                className="bg-green-600 px-10 py-2 rounded-2xl  hover:bg-green-700 text-white font-medium py-1 px-3 rounded transition"
+                disabled={isRunning || !hasSubmitted}
+              >
+                Click ME!!
+              </button>
+            </div>
+            <div className="prose prose-sm text-black overflow-y-auto" style={{ height: '400px' }}>
+              {aiReview === '' ? (
+                <div>🤖</div>
+              ) : (
+                <ReactMarkdown>{aiReview}</ReactMarkdown>
+              )}
+            </div>
+            {/* Tooltip or message if AI Review is locked */}
+            {!hasSubmitted && (
+              <div className="text-xm text-gray-500 mt-1">Submit your code to unlock AI Review.</div>
+            )}
+          </div>
         </div>
 
         {/* Right - Editor */}
@@ -221,7 +253,7 @@ const Problem = () => {
               </select>
             </div>
             <MonacoEditor
-              height="300px"
+              height="500px"
               language={getEditorLanguage()}
               theme="vs-dark"
               value={code}
@@ -230,7 +262,7 @@ const Problem = () => {
             />
           </div>
 
-          <div className="bg-white p-4 rounded shadow">
+          {/* <div className="bg-white p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-2">Custom Input</h2>
             <textarea
               className="w-full border rounded p-2 font-mono text-sm"
@@ -239,7 +271,7 @@ const Problem = () => {
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
             />
-          </div>
+          </div> */}
 
           <div className="flex gap-4">
             <button onClick={handleRunCode} disabled={isRunning} className="bg-blue-600 text-white px-4 py-2 rounded">
@@ -254,31 +286,6 @@ const Problem = () => {
             <pre>{output || 'Output will be shown here...'}</pre>
           </div> */}
 
-          {/* AI Review Box */}
-          <div className="bg-white shadow-lg rounded-lg p-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold text-gray-700">AI Review</h2>
-              <button
-                onClick={handleAiReview}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded transition"
-                disabled={isRunning || !hasSubmitted} // <-- Disable unless submitted
-              >
-                AI Review
-              </button>
-            </div>
-            <div className="prose prose-sm text-gray-800 overflow-y-auto" style={{ height: '300px' }}>
-              {aiReview === '' ? (
-                <div>🤖</div>
-              ) : (
-                <ReactMarkdown>{aiReview}</ReactMarkdown>
-              )}
-            </div>
-            {/* Tooltip or message if AI Review is locked */}
-            {!hasSubmitted && (
-              <div className="text-xs text-gray-500 mt-1">Submit your code to unlock AI Review.</div>
-            )}
-          </div>
-
           {verdict && (
             <div className={`text-xl font-bold ${verdict === 'Accepted' ? 'text-green-600' : 'text-red-600'}`}>
               {verdict}
@@ -291,16 +298,25 @@ const Problem = () => {
               {testResults.map((test, index) => (
                 <div key={index} className={`mb-4 border-t pt-2 ${!test.passed ? 'bg-red-50' : ''}`}>
                   <h3 className="font-medium mb-2">Test Case {index + 1}</h3>
-                  <p><strong>Input:</strong> <pre className="bg-gray-100 p-2 rounded">{test.input}</pre></p>
-                  <p><strong>Expected Output:</strong> <pre className="bg-gray-100 p-2 rounded">{test.expected}</pre></p>
-                  <p><strong>Your Output:</strong> <pre className="bg-gray-100 p-2 rounded">{test.output}</pre></p>
-                  <p className={`font-bold ${test.passed ? 'text-green-600' : 'text-red-600'}`}>
+                  <div>
+                    <strong>Input:</strong>
+                    <pre className="bg-gray-100 p-2 rounded">{test.input}</pre>
+                  </div>
+                  <div>
+                    <strong>Expected Output:</strong>
+                    <pre className="bg-gray-100 p-2 rounded">{test.expected}</pre>
+                  </div>
+                  <div>
+                    <strong>Your Output:</strong>
+                    <pre className="bg-gray-100 p-2 rounded">{test.output}</pre>
+                  </div>
+                  <div className={`font-bold ${test.passed ? 'text-green-600' : 'text-red-600'}`}>
                     {test.passed ? '✓ Passed' : '✗ Failed'}
-                  </p>
+                  </div>
                   {!test.passed && (
-                    <p className="text-red-600 font-medium">
+                    <div className="text-red-600 font-medium">
                       This was the first failed test case. Fix your code to proceed.
-                    </p>
+                    </div>
                   )}
                 </div>
               ))}

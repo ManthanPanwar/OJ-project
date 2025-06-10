@@ -10,7 +10,7 @@ const Home = () => {
   // Function to check if the session is still valid
   const checkSession = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/users/me", {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/users/me`, {
         withCredentials: true,
       });
       if (res.data.success && res.data.user) {
@@ -55,6 +55,8 @@ const Home = () => {
     } catch (error) {
       console.log(error);
       toast.error('Failed to logout');
+      localStorage.removeItem('loggedInUser');
+      localStorage.removeItem('token');
     }
   };
 

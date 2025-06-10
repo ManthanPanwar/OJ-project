@@ -43,7 +43,7 @@ int main() {
     };
 
     try {
-      const { data } = await axios.post('http://localhost:8000/ai-review', payload);
+      const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/aireview`, payload);
       setAiReview(data.review);
     } catch (error) {
       setAiReview('Error in AI review, error: ' + error.message);

@@ -18,6 +18,9 @@ app.use(cors({
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/users", require("./routes/userRoutes"));
 app.use("/problems", require("./routes/problemRoutes"))
+app.use("/", (req, res) => {
+  res.status(200).json({ message: "Welcome to the backend server!" });
+})
 
 dbConnection()
   .then(() => {
