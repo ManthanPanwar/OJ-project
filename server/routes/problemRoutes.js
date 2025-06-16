@@ -10,17 +10,18 @@ const {
   updateProblemById,
 } = require("../controllers/problemController");
 
-const { runCode, submitCode } = require("../controllers/runController");
+const { runCode, submitCode, runCustomInput } = require("../controllers/runController");
 
 const { aiReview } = require("../controllers/aiController");
 
 router.post("/createproblem", createProblem);
 router.get("/",  getAllProblems);
 router.get("/:id",  getProblemById);
-router.delete("/:id", deleteProblemById);
-router.put("/:id",  updateProblemById);
-router.post("/:id/run",  runCode);
-router.post('/:id/submit',  submitCode);
-router.post("/:id/aireview", aiReview);
+router.delete("/:id", authMiddleware, deleteProblemById);
+router.put("/:id",  authMiddleware,updateProblemById);
+router.post("/:id/run", authMiddleware, runCode);
+router.post('/:id/submit',  authMiddleware, submitCode);
+router.post("/:id/aireview", authMiddleware, aiReview);
+router.post("/runCustomInput",runCustomInput);
 
 module.exports = router;

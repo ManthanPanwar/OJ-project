@@ -21,6 +21,7 @@ const Problem = () => {
   const [verdict, setVerdict] = useState(null);
   const [aiReview, setAiReview] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false); // <-- New state
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for submit button
 
   const languageTemplates = {
     javascript: `function main(input) {\n  // Your code here\n  return input;\n}`,
@@ -60,10 +61,20 @@ const Problem = () => {
     setVerdict(null);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/run`, {
-        code,
-        language,
-      });
+      const token = localStorage.getItem("token"); // Get token from localStorage
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/problems/${id}/run`,
+        {
+          code,
+          language,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Set Authorization header
+          },
+        }
+      );
       
       console.log(response.data);
       const {passedAll, results} = response.data;
@@ -80,44 +91,56 @@ const Problem = () => {
     }
   };
 
-  const handleSubmitCode = async () => {
+  const handleSubmit = async () => {
     if (!code.trim()) {
       console.log("No code Provided");
       return;
     }
 
-    setIsRunning(true);
+    setIsSubmitting(true);
     setTestResults([]);
     setVerdict(null);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/submit`, {
-        code,
-        language,
-      });
+      const token = localStorage.getItem("token"); // Get token from localStorage
 
-      const results = response.data.results || [];
-      const failedIndex = results.findIndex(r => !r.passed);
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/problems/${id}/submit`,
+        {
+          code,
+          language,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Set Authorization header
+          },
+        }
+      );
 
-      if (failedIndex >= 0) {
-        setVerdict('Wrong Answer');
-        setTestResults(results.slice(0, failedIndex + 1));
-      } else {
-        setVerdict('Accepted');
+      console.log(response.data);
+      const { passedAll, results } = response.data;
+      if (passedAll) {
+        setVerdict("Accepted");
         setTestResults(results);
+      } else {
+        setVerdict("Wrong Answer");
       }
-      setHasSubmitted(true); // <-- Add this line
+      setHasSubmitted(true); // Set hasSubmitted to true after successful submission
     } catch (err) {
-      console.log(err)
-      setHasSubmitted(true); // <-- Even on error, allow AI review
+      console.log("Error: ", err);
     } finally {
-      setIsRunning(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleAiReview = async () => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/aireview`, { code });
+      const token = localStorage.getItem("token"); // Get token from localStorage
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/${id}/aireview`, { code },{
+          headers: {
+            Authorization: `Bearer ${token}`, // Set Authorization header
+          },
+        });
       toast.success("AI review is on the way! Please wait a moment.");
       setAiReview(response.data.data.review);
     } catch (error) {
@@ -217,10 +240,10 @@ const Problem = () => {
           {/* AI Review Box moved here */}
           <div className="bg-slate-200 shadow-lg rounded-lg p-4 mb-4">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg px-50 py-2 rounded-2xl bg-slate-500 font-semibold text-black">AI Review</h2>
+              <h2 className="text-lg px-5 py-2 rounded-2xl bg-slate-500 font-semibold text-black">AI Review</h2>
               <button
                 onClick={handleAiReview}
-                className="bg-green-600 px-10 py-2 rounded-2xl  hover:bg-green-700 text-white font-medium py-1 px-3 rounded transition"
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded transition"
                 disabled={isRunning || !hasSubmitted}
               >
                 Click ME!!
@@ -277,7 +300,7 @@ const Problem = () => {
             <button onClick={handleRunCode} disabled={isRunning} className="bg-blue-600 text-white px-4 py-2 rounded">
               Run Code
             </button>
-            <button onClick={handleSubmitCode} disabled={isRunning} className="bg-green-600 text-white px-4 py-2 rounded">
+            <button onClick={handleSubmit} disabled={isSubmitting} className="bg-green-600 text-white px-4 py-2 rounded">
               Submit
             </button>
           </div>

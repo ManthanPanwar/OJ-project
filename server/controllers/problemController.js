@@ -64,7 +64,6 @@ const getAllProblems = async (req, res) => {
             return res
                 .status(404)
                 .json({ message: "No problems found", success: false });
-        console.log("Fetched problems:", problems);
         return res
             .status(200)
             .json({ message: "Problems fetched successfully", success: true, problems });

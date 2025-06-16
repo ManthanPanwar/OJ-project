@@ -20,7 +20,7 @@ int main() {
 }`);
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
-  const [aiReview, setAiReview] = useState('');
+  // const [aiReview, setAiReview] = useState('');
 
   const handleRun = async () => {
     const payload = {
@@ -30,25 +30,25 @@ int main() {
     };
 
     try {
-      const { data } = await axios.post(import.meta.env.VITE_BACKEND_URL, payload);
+      const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/problems/runCustomInput`, payload);
       setOutput(data.output);
     } catch (error) {
       setOutput('Error executing code, error: ' + error.message);
     }
   };
 
-  const handleAiReview = async () => {
-    const payload = {
-      code
-    };
+  // const handleAiReview = async () => {
+  //   const payload = {
+  //     code
+  //   };
 
-    try {
-      const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/aireview`, payload);
-      setAiReview(data.review);
-    } catch (error) {
-      setAiReview('Error in AI review, error: ' + error.message);
-    };
-  };
+  //   try {
+  //     const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/aireview`, payload);
+  //     setAiReview(data.review);
+  //   } catch (error) {
+  //     setAiReview('Error in AI review, error: ' + error.message);
+  //   };
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -93,7 +93,7 @@ int main() {
             <div className="text-sm font-mono whitespace-pre-wrap text-gray-800">{output}</div>
           </div>
 
-          {/* AI Review Box */}
+          {/* AI Review Box
           <div className="bg-white shadow-lg rounded-lg p-4">
             <h2 className="text-lg font-semibold text-gray-700 mb-2">AI Review</h2>
             <div className="prose prose-sm text-gray-800 overflow-y-auto" style={{ height: '150px' }}>
@@ -105,7 +105,7 @@ int main() {
                   </ReactMarkdown>
               }
             </div>
-          </div>
+          </div> */}
 
           {/* Buttons */}
           <div className="flex gap-4 mt-2">
@@ -115,12 +115,12 @@ int main() {
             >
               Run
             </button>
-            <button
+            {/* <button
               onClick={handleAiReview}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition"
             >
               AI Review
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

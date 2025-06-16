@@ -105,7 +105,32 @@ const submitCode = async (req, res) => {
   }
 };
 
+const runCustomInput = async (req, res) => {
+  const { code, language, input } = req.body;
+  if (!code || !language || !input) {
+    return res.status(400).json({ error: "Code, language, and input are required" });
+  }
+  try {
+    const filePath = await generateFile(language, code);
+    const inputPath = await generateInputFile(input);
+
+    const output = await executeCode({ filePath, inputPath });
+
+    return res.status(201).json({
+      success: true,
+      output: output.trim(),
+    });
+  } catch (error) {
+    console.error("Error running custom input:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   runCode,
   submitCode,
+  runCustomInput
 };
