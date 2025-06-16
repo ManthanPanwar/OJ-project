@@ -52,7 +52,7 @@ const Problem = () => {
 
   const handleRunCode = async () => {
     if (!code.trim()) {
-      console.log("No code Provided");
+      toast.error("No code Provided");
       return;
     }
 
@@ -76,7 +76,6 @@ const Problem = () => {
         }
       );
       
-      console.log(response.data);
       const {passedAll, results} = response.data;
       if(passedAll) {
         setVerdict('Accepted');

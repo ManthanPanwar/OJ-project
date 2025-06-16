@@ -21,7 +21,6 @@ const Problems = () => {
 
         let problemsData = [];
         problemsData = response.data.problems;
-        console.log("problemsData", problemsData);
 
         if (problemsData.length === 0) {
           console.warn('Received empty problems array');

@@ -13,7 +13,6 @@ const Register = () => {
   const navigate = useNavigate();
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(name, value);
     const copyRegisterInfo = { ...registerInfo };
     copyRegisterInfo[name] = value;
     setRegisterInfo(copyRegisterInfo);

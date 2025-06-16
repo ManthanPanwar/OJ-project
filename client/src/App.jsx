@@ -15,8 +15,6 @@ function App() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <AuthProvider>
-      <Router>
         <div className="min-h-screen bg-gray-100">
           <Navbar />
           <main className="container mx-auto py-2">
@@ -42,8 +40,6 @@ function App() {
             </Routes>
           </main>
         </div>
-      </Router>
-    </AuthProvider>
   );
 }
 
